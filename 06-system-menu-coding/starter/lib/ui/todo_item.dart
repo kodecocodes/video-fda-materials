@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,45 +32,48 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../controllers/list_controller.dart';
 import '../db/repository.dart';
 
-class TodoItem extends StatelessWidget {
+//ignore: must_be_immutable
+class TodoItem extends ConsumerWidget {
   final String todoListName;
   final Todo todo;
+  late ListController listController;
+  late Todo editingTodo;
 
-  const TodoItem({Key? key, required this.todoListName, required this.todo})
-      : super(key: key);
+  TodoItem({Key? key, required this.todoListName, required this.todo})
+      : super(key: key) {
+    editingTodo = todo;
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
-    return GetBuilder<ListController>(
-      tag: todoListName,
-      builder: (listController) => Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Checkbox(
-              value: todo.finished,
-              onChanged: (changeValue) {
-                listController.setCurrentTodo(todo);
-                if (changeValue != null) {
-                  todo.finished = changeValue;
-                  repository.updateTodo(todo);
-                }
-              },
-            ),
-            GestureDetector(
-              onTap: () {
-                listController.setCurrentTodo(todo);
-              },
-              child: Text(todo.name),
-            )
-          ],
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    listController = ref.read(listControllerProvider);
+    final repository = ref.read(repositoryProvider);
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Checkbox(
+            value: todo.finished,
+            onChanged: (changeValue) {
+              listController.setCurrentTodo(todo);
+              if (changeValue != null) {
+                editingTodo = editingTodo.copyWith(finished: changeValue);
+                repository.updateTodo(editingTodo);
+              }
+            },
+          ),
+          GestureDetector(
+            onTap: () {
+              listController.setCurrentTodo(editingTodo);
+            },
+            child: Text(todo.name),
+          )
+        ],
       ),
     );
   }

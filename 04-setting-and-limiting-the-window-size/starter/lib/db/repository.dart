@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +31,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'database.dart';
 import '../models/models.dart';
 
+final repositoryProvider = Provider<Repository>((ref) {
+  return Repository();
+});
+
 class Repository {
+
   late TodoDatabase _todoDatabase;
   late TodoDao _todoDao;
   late CategoryDao _categoryDao;
   late ListDao _listDao;
+
+  Repository() {
+    init();
+  }
 
   void init() async {
     _todoDatabase = TodoDatabase();
@@ -58,9 +69,9 @@ class Repository {
   Future<void> deleteTodoList(TodoList list) async {
     // 1st go through all categories and delete todos
     final categories = await _categoryDao.allListCategories(list.id);
-    categories.forEach((category) {
-      deleteAllTodos(category.id);
-      deleteCategoryById(category.id);
+    await Future.forEach(categories, (category) async {
+      await deleteAllTodos(category.id);
+      await deleteCategoryById(category.id);
     });
     _listDao.deleteList(list.id);
     return Future.value();
@@ -71,14 +82,14 @@ class Repository {
         (List<ListTableData> tododata) => _convertTodoLists(tododata));
   }
 
-  Future fillTodoList(TodoList todoList) async {
+  Future<TodoList> fillTodoList(TodoList todoList) async {
     final categories = await getListCategories(todoList.id);
-    todoList.categories = categories;
+    todoList = todoList.copyWith(categories: categories);
     await Future.forEach(categories, (Category category) async {
       final todos = await getCategoryTodos(category.id);
-      category.todos = todos;
+      category = category.copyWith(todos: todos);
     });
-    return Future.value();
+    return Future.value(todoList);
   }
 
   Stream<List<TodoList>> watchAllTodoLists() {
@@ -86,11 +97,11 @@ class Repository {
         (List<ListTableData> tododata) => _convertTodoLists(tododata));
   }
 
-  List<TodoList> _convertTodoLists(List<ListTableData> tododata) {
+  List<TodoList> _convertTodoLists(List<ListTableData> todoData) {
     final todos = <TodoList>[];
-    tododata.forEach((element) {
-      todos.add(listDataToList(element));
-    });
+    for (final todo in todoData) {
+      todos.add(listDataToList(todo));
+    }
     return todos;
   }
 
@@ -145,9 +156,9 @@ class Repository {
 
   List<Category> _convertCategories(List<CategoryTableData> categoryTableData) {
     final categories = <Category>[];
-    categoryTableData.forEach((element) {
-      categories.add(categoryDataToCategory(element));
-    });
+    for (final data in categoryTableData) {
+      categories.add(categoryDataToCategory(data));
+    }
     return categories;
   }
 
@@ -181,9 +192,9 @@ class Repository {
 
   List<Todo> _convertTodos(List<TodoTableData> tododata) {
     final todos = <Todo>[];
-    tododata.forEach((element) {
-      todos.add(todoDataToTodo(element));
-    });
+    for (final data in tododata) {
+      todos.add(todoDataToTodo(data));
+    }
     return todos;
   }
 

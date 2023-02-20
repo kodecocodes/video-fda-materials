@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,40 +31,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'todo.freezed.dart';
+part 'todo.g.dart';
 
 // ignore: must_be_immutable
-class Todo extends Equatable {
-  int id = -1;
-  final String name;
-  int category;
-  bool finished;
-  String notes;
+@freezed
+class Todo with _$Todo {
+  @JsonSerializable(explicitToJson: true)
+  const factory Todo({
+    required int id,
+    required String name,
+    required int category,
+    @Default(false) bool finished,
+    @Default('') String? notes
+  }) = _Todo;
+  factory Todo.fromJson(Map<String, dynamic> json) =>
+      _$TodoFromJson(json);
 
-  Todo(
-      {this.id = -1,
-      required this.name,
-      required this.category,
-      this.finished = false,
-      this.notes = ''});
-
-  @override
-  List<Object> get props => [id, name, category, finished, notes];
-
-  // Create a Todo from JSON data
-  factory Todo.fromJson(Map<String, dynamic> json) => Todo(
-        id: json['id'],
-        name: json['name'],
-        category: json['category'],
-        finished: json['finished'],
-        notes: json['notes'],
-      );
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'category': category,
-        'finished': finished,
-        'notes': notes,
-      };
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,35 +32,38 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/repository.dart';
 import '../models/models.dart';
 
 import 'dialogs.dart';
 
-class TodoEditor extends StatefulWidget {
+class TodoEditor extends ConsumerStatefulWidget {
   final Todo todo;
 
-  TodoEditor({Key? key, required this.todo}) : super(key: key);
+  const TodoEditor({Key? key, required this.todo}) : super(key: key);
 
   @override
-  _TodoEditorState createState() => _TodoEditorState();
+  ConsumerState createState() => _TodoEditorState();
 }
 
-class _TodoEditorState extends State<TodoEditor> {
+class _TodoEditorState extends ConsumerState<TodoEditor> {
   final notesController = TextEditingController();
+  late Todo editingTodo;
 
   @override
   void initState() {
     super.initState();
-    notesController.text = widget.todo.notes;
+    editingTodo = widget.todo;
+    notesController.text = widget.todo.notes ?? '';
     notesController.addListener(() {
-      widget.todo.notes = notesController.text;
+      editingTodo = editingTodo.copyWith(notes: notesController.text);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final repository = ref.read(repositoryProvider);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       elevation: 4.0,
@@ -91,7 +94,9 @@ class _TodoEditorState extends State<TodoEditor> {
                   value: widget.todo.finished,
                   onChanged: (value) =>
                       setState(() {
-                        value != null ? widget.todo.finished = value : null;
+                        if (value != null) {
+                          editingTodo = editingTodo.copyWith(finished: value);
+                        }
                       }),),
                 const Text('Finished'),
                 const SizedBox(
@@ -103,8 +108,8 @@ class _TodoEditorState extends State<TodoEditor> {
               height: 8,
             ),
             Row(
-              children: [
-                const Text('Notes:'),
+              children: const [
+                Text('Notes:'),
               ],
             ),
             const SizedBox(
@@ -129,8 +134,8 @@ class _TodoEditorState extends State<TodoEditor> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Get.find<Repository>().updateTodo(widget.todo);
-                    Get.back();
+                    repository.updateTodo(widget.todo);
+                    Navigator.of(context).pop();
                   },
                   child: const Text('Save'),
                 ),
@@ -139,12 +144,12 @@ class _TodoEditorState extends State<TodoEditor> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    areYouSureDelete(
+                    areYouSureDelete(context,
                         'Are you sure you want to delete ${widget.todo.name}',
                             (deleted) {
                           if (deleted) {
-                            Get.find<Repository>().deleteTodo(widget.todo);
-                            Get.back();
+                            repository.deleteTodo(widget.todo);
+                            Navigator.of(context).pop();
                           }
                         });
                   },
@@ -155,7 +160,7 @@ class _TodoEditorState extends State<TodoEditor> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    Get.back();
+                    Navigator.of(context).pop();
                   },
                   child: const Text('Cancel'),
                 ),

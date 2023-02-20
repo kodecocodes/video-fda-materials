@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,10 +33,12 @@
  */
 import 'dart:io';
 
-import 'package:moor/ffi.dart';
-import 'package:moor/moor.dart';
+
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path_provider/path_provider.dart';
+
 import '../models/models.dart';
-import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
@@ -67,27 +69,39 @@ class TodoTable extends Table {
   TextColumn get notes => text()();
 }
 
-final executor = LazyDatabase(() async {
-  final dbFolder = await getDatabasesPath();
-  final file = File(p.join(dbFolder, 'todos.sqlite'));
-  return VmDatabase(file);
-});
+// final executor = LazyDatabase(() async {
+//   final dbFolder = await getDatabasesPath();
+//   final file = File(p.join(dbFolder, 'todos.sqlite'));
+//   return VmDatabase(file);
+// });
 
-@UseMoor(
+LazyDatabase _openConnection() {
+  // the LazyDatabase util lets us find the right location for the file async.
+  return LazyDatabase(() async {
+    // put the database file, called db.sqlite here, into the documents folder
+    // for your app.
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dbFolder.path, 'db.sqlite'));
+    return NativeDatabase.createInBackground(file);
+  });
+}
+
+@DriftDatabase(
     tables: [ListTable, CategoryTable, TodoTable],
     daos: [ListDao, CategoryDao, TodoDao])
 class TodoDatabase extends _$TodoDatabase {
-  TodoDatabase() : super(executor);
+  TodoDatabase() : super(_openConnection());
 
   @override
   int get schemaVersion => 1;
 }
 
-@UseDao(tables: [ListTable])
+@DriftAccessor(tables: [ListTable])
 class ListDao extends DatabaseAccessor<TodoDatabase> with _$ListDaoMixin {
   final TodoDatabase db;
 
   ListDao(this.db) : super(db);
+
 
   Stream<List<ListTableData>> watchAllLists() => select(listTable).watch();
 
@@ -101,14 +115,16 @@ class ListDao extends DatabaseAccessor<TodoDatabase> with _$ListDaoMixin {
 
   Future deleteList(int id) =>
       Future.value((delete(listTable)..where((tbl) => tbl.id.equals(id))).go());
+
 }
 
-@UseDao(tables: [CategoryTable])
+@DriftAccessor(tables: [CategoryTable])
 class CategoryDao extends DatabaseAccessor<TodoDatabase>
     with _$CategoryDaoMixin {
   final TodoDatabase db;
 
   CategoryDao(this.db) : super(db);
+
 
   Stream<List<CategoryTableData>> watchAllCategories(int todoListId) =>
       (select(categoryTable)..where((tbl) => tbl.todoList.equals(todoListId)))
@@ -138,9 +154,10 @@ class CategoryDao extends DatabaseAccessor<TodoDatabase>
   Future deleteAllCategories(int todoListId) => Future.value(
       (delete(categoryTable)..where((tbl) => tbl.todoList.equals(todoListId)))
           .go());
+
 }
 
-@UseDao(tables: [TodoTable])
+@DriftAccessor(tables: [TodoTable])
 class TodoDao extends DatabaseAccessor<TodoDatabase> with _$TodoDaoMixin {
   final TodoDatabase db;
 
@@ -178,6 +195,7 @@ class TodoDao extends DatabaseAccessor<TodoDatabase> with _$TodoDaoMixin {
   Future deleteAllTodos(int categoryId) => Future.value((delete(todoTable)
         ..where((tbl) => tbl.category.equals(categoryId)))
       .go());
+
 }
 
 TodoList listDataToList(ListTableData data) {
@@ -232,6 +250,6 @@ Insertable<TodoTableData> todoToTodoData(Todo data) {
     category: data.category,
     name: data.name,
     finished: Value(data.finished),
-    notes: data.notes,
+    notes: data.notes ?? '',
   );
 }

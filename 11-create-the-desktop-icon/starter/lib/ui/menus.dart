@@ -1,0 +1,283 @@
+/*
+ * Copyright (c) 2023 Kodeco LLC
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * Notwithstanding the foregoing, you may not use, copy, modify, merge, publish,
+ * distribute, sublicense, create a derivative work, and/or sell copies of the
+ * Software in any work that is designed, intended, or marketed for pedagogical or
+ * instructional purposes related to programming, coding, application development,
+ * or information technology.  Permission for such use, copying, modification,
+ * merger, publication, distribution, sublicensing, creation of derivative works,
+ * or sale is expressly withheld.
+ *
+ * This project and source code may use libraries or frameworks that are
+ * released under various Open-Source licenses. Use of those libraries and
+ * frameworks are governed by their own individual licenses.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:filesystem_picker/filesystem_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:menubar/menubar.dart';
+import 'package:todo/controllers/list_controller.dart';
+import '../controllers/todo_controller.dart';
+import '../main.dart';
+import '../models/lists.dart';
+import '../db/repository.dart';
+
+import 'dialogs.dart';
+
+final menuProvider = Provider<MenuProvider>((ref) {
+  return MenuProvider(ref);
+});
+
+class MenuProvider {
+  final ProviderRef ref;
+
+  MenuProvider(this.ref);
+  
+  List<PlatformMenu> createMenus() {
+    return [
+      createFileMenu(),
+      createEditMenu(),
+      createTodosMenu(),
+      createFindMenu(),
+      createHelpMenu(),
+    ];
+  }
+
+  void createWindowsMenus() {
+    setApplicationMenu([
+      createWindowsFileMenu(),
+      createWindowsEditMenu(),
+      createWindowsTodosMenu(),
+      createWindowsFindMenu(),
+      createWindowsHelpMenu(),
+    ]);
+  }
+
+  PlatformMenu createFileMenu() {
+    return PlatformMenu(label: 'File', menus: [
+      PlatformMenuItem(label: 'Import', onSelected: () => handleImport()),
+      PlatformMenuItem(label: 'Export', onSelected: () => handleExport()),
+      PlatformMenuItemGroup(members: [
+        PlatformMenuItem(
+            label: 'Quit',
+            onSelected: () => handleQuit(),
+            shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyQ, meta: true))
+      ])
+    ]);
+  }
+
+  NativeSubmenu createWindowsFileMenu() {
+    return NativeSubmenu(label: 'File', children: [
+      NativeMenuItem(label: 'Import', onSelected: () => handleImport()),
+      NativeMenuItem(label: 'Export', onSelected: () => handleExport())
+    ]);
+  }
+
+  void handleImport() async {
+    final path = await FilesystemPicker.open(
+      title: 'Open file',
+      context: navigatorKey.currentContext!,
+      rootDirectory: Directory.current,
+      fsType: FilesystemType.file,
+      folderIconColor: Colors.teal,
+      allowedExtensions: ['.todo'],
+      fileTileSelectMode: FileTileSelectMode.wholeTile,
+    );
+
+    if (path != null) {
+      final file = File(path);
+      if (await file.exists()) {
+        final repository = ProviderScope.containerOf(
+            navigatorKey.currentContext!)
+            .read(repositoryProvider);
+        file.readAsString().then((String contents) async {
+          final jsonArray = jsonDecode(contents) as List<dynamic>;
+          await Future.forEach(jsonArray, (value) async {
+            final map = value as Map<String, dynamic>;
+            var list = TodoList.fromJson(map);
+            list = list.copyWith(id: -1);
+            final todoListId = await repository.addTodoList(list);
+            await Future.forEach(list.categories, (category) async {
+              category = category.copyWith(id: -1, todoList: todoListId);
+              final categoryId = await repository.addCategory(category);
+              await Future.forEach(category.todos, (todo) async {
+                todo = todo.copyWith(id: -1, category: categoryId);
+                await repository.addTodo(todo);
+              });
+            });
+          });
+        });
+      }
+    }
+  }
+
+  void handleExport() async {
+    final path = await FilesystemPicker.open(
+      title: 'Save to folder',
+      context: navigatorKey.currentContext!,
+      rootDirectory: Directory.current,
+      fsType: FilesystemType.folder,
+      pickText: 'Save file to this folder',
+      folderIconColor: Colors.teal,
+    );
+
+    if (path != null) {
+      final file = File('$path/exports.todo');
+      if (await file.exists()) {
+        await file.delete();
+      }
+      final repository = ProviderScope.containerOf(navigatorKey.currentContext!)
+          .read(repositoryProvider);
+      final todoController =
+      ProviderScope.containerOf(navigatorKey.currentContext!)
+          .read(todoControllerProvider);
+      final todoLists = todoController.todoList;
+      for (final list in todoLists) {
+        await repository.fillTodoList(list);
+      }
+      await file.writeAsString(jsonEncode(todoLists));
+    }
+  }
+
+  PlatformMenu createEditMenu() {
+    return PlatformMenu(label: 'Edit', menus: [
+      PlatformMenuItem(label: 'Cut', onSelected: () => handleCut()),
+      PlatformMenuItem(label: 'Copy', onSelected: () => handleCopy()),
+      PlatformMenuItem(label: 'Paste', onSelected: () => handlePaste())
+    ]);
+  }
+
+  NativeSubmenu createWindowsEditMenu() {
+    return NativeSubmenu(label: 'Edit', children: [
+      NativeMenuItem(label: 'Cut', onSelected: () => handleCut()),
+      NativeMenuItem(label: 'Copy', onSelected: () => handleCopy()),
+      NativeMenuItem(label: 'Paste', onSelected: () => handlePaste())
+    ]);
+  }
+  void handlePaste() {}
+
+  void handleCopy() {}
+
+  void handleCut() {}
+
+  PlatformMenu createTodosMenu() {
+    return PlatformMenu(label: 'Todos', menus: [
+      PlatformMenuItemGroup(members: [
+        PlatformMenuItem(label: 'List', onSelected: () => newList()),
+        PlatformMenuItem(label: 'Category', onSelected: () => newCategory()),
+        PlatformMenuItem(label: 'Todo', onSelected: () => newTodo()),
+      ]),
+      PlatformMenu(label: 'Delete', menus: [
+        PlatformMenuItem(label: 'List', onSelected: () => deleteList()),
+        PlatformMenuItem(label: 'Category', onSelected: () => deleteCategory()),
+        PlatformMenuItem(label: 'Todo', onSelected: () => deleteTodo()),
+      ])
+    ]);
+  }
+
+  NativeSubmenu createWindowsTodosMenu() {
+    return NativeSubmenu(label: 'Todos', children: [
+      NativeSubmenu(label: 'New', children: [
+        NativeMenuItem(label: 'List', onSelected: () => newList()),
+        NativeMenuItem(label: 'Category', onSelected: () => newCategory()),
+        NativeMenuItem(label: 'Todo', onSelected: () => newTodo()),
+      ]),
+      NativeSubmenu(label: 'Delete', children: [
+        NativeMenuItem(label: 'List', onSelected: () => deleteList()),
+        NativeMenuItem(label: 'Category', onSelected: () => deleteCategory()),
+        NativeMenuItem(label: 'Todo', onSelected: () => deleteTodo()),
+      ])
+    ]);
+  }
+
+  void deleteTodo() {}
+
+  void deleteCategory() {}
+
+  void deleteList() {
+    final listController = ref.read(listControllerProvider);
+    final todoList = listController.currentList;
+    if (todoList.name != 'empty') {
+      areYouSureDelete(navigatorKey.currentContext!,
+          'Are you sure you want to delete ${todoList.name}',
+              (deleted) {
+            if (deleted) {
+              final repository = ref.read(repositoryProvider);
+              repository.deleteTodoList(todoList);
+            }
+          });
+    }
+  }
+
+  void newCategory() {}
+
+  void newTodo() {}
+
+  void newList() {}
+
+  PlatformMenu createFindMenu() {
+    return PlatformMenu(label: 'Find', menus: [
+      PlatformMenuItem(label: 'Search', onSelected: () => handleSearch()),
+      PlatformMenuItem(label: 'Next', onSelected: () => handleNext()),
+      PlatformMenuItem(label: 'Previous', onSelected: () => handlePrevious())
+    ]);
+  }
+
+  NativeSubmenu createWindowsFindMenu() {
+    return NativeSubmenu(label: 'Find', children: [
+      NativeMenuItem(label: 'Search', onSelected: () => handleSearch()),
+      NativeMenuItem(label: 'Next', onSelected: () => handleNext()),
+      NativeMenuItem(label: 'Previous', onSelected: () => handlePrevious())
+    ]);
+  }
+
+  void handlePrevious() {}
+
+  void handleNext() {}
+
+  void handleSearch() {}
+
+  PlatformMenu createHelpMenu() {
+    return PlatformMenu(
+        label: 'Help',
+        menus: [
+          PlatformMenuItem(label: 'Help', onSelected: () => handleHelp())
+        ]);
+  }
+
+  NativeSubmenu createWindowsHelpMenu() {
+    return NativeSubmenu(label: 'Help', children: [
+      NativeMenuItem(label: 'Help', onSelected: () => handleHelp())
+    ]);
+  }
+
+  void handleHelp() {}
+
+  void handleQuit() {
+    SystemNavigator.pop();
+  }
+}

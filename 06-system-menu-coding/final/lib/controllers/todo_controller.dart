@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,24 +32,30 @@
  * THE SOFTWARE.
  */
 
-import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/models.dart';
 
-class TodoController extends GetxController {
-  var todoList = <TodoList>[].obs;
+final todoControllerProvider = ChangeNotifierProvider<TodoController>((ref) {
+  return TodoController();
+});
+
+
+class TodoController extends ChangeNotifier {
+  var todoList = <TodoList>[];
 
   void setLists(List<TodoList> lists) {
-    todoList.value = lists;
-    update();
+    todoList = lists;
   }
 
   void addList(TodoList list) {
-    todoList.value.add(list);
-    update();
+    todoList.add(list);
+    notifyListeners();
   }
 
   void removeList(TodoList list) {
-    todoList.value.remove(list);
-    update();
+    todoList.remove(list);
+    notifyListeners();
   }
 }

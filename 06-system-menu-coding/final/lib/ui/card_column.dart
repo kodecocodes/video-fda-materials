@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,8 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import 'package:get/get.dart';
 import '../controllers/list_controller.dart';
 import '../db/repository.dart';
 
@@ -49,15 +48,20 @@ var colors = [
 ];
 
 // ignore: must_be_immutable
-class CardColumn extends StatelessWidget {
+class CardColumn extends ConsumerWidget {
   final TodoList todoList;
   late String todoListName;
-  late final ListController listController;
+  late ListController listController;
 
   CardColumn({Key? key, required this.todoList}) : super(key: key) {
     todoListName = todoList.name;
-    listController = Get.put(ListController(todoList), tag: todoList.name);
-    final repository = Get.find<Repository>();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    listController = ref.read(listControllerProvider);
+    listController.setCurrentList(todoList);
+    final repository = ref.read(repositoryProvider);
     repository.firstCategory(todoList.id).then((category) {
       if (category != null) {
         listController.setCurrentCategory(category);
@@ -68,19 +72,13 @@ class CardColumn extends StatelessWidget {
         });
       }
     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
-    return GetBuilder<ListController>(
-      tag: todoList.name,
-      builder: (controller) => StreamBuilder<List<Category>>(
+    return StreamBuilder<List<Category>>(
         stream: repository.watchAllCategories(todoList.id),
         builder: (context, AsyncSnapshot<List<Category>> snapshot) {
           if (!snapshot.hasData ||
-              snapshot.connectionState != ConnectionState.active)
+              snapshot.connectionState != ConnectionState.active) {
             return const CircularProgressIndicator();
+          }
           final categories = snapshot.data ?? [];
           return Padding(
             padding: const EdgeInsets.all(10.0),
@@ -91,10 +89,10 @@ class CardColumn extends StatelessWidget {
                   children: [
                     FloatingActionButton(
                       onPressed: () {
-                        addCategory(repository, controller, todoList.id);
+                        addCategory(context, repository, listController, todoList.id);
                       },
-                      child: const Icon(Icons.add),
                       mini: true,
+                      child: const Icon(Icons.add),
                     ),
                   ],
                 ),
@@ -105,14 +103,14 @@ class CardColumn extends StatelessWidget {
                       itemCount: categories.length,
                       itemBuilder: (context, index) {
                         final colorIndex = index % colors.length;
-                        return buildListCard(
+                        return buildListCard(ref,
                             categories[index], colors[colorIndex]!);
                       }),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: () {
-                    areYouSureDelete(
+                    areYouSureDelete(context,
                         'Are you sure you want to delete ${todoList.name}',
                         (deleted) {
                       if (deleted) {
@@ -125,20 +123,18 @@ class CardColumn extends StatelessWidget {
             ),
           );
         },
-      ),
     );
   }
 
-  Widget buildListCard(Category category, Color color) {
-    final repository = Get.find<Repository>();
-    return GetBuilder<ListController>(
-      tag: todoListName,
-      builder: (controller) => StreamBuilder<List<Todo>>(
+  Widget buildListCard(WidgetRef ref, Category category, Color color) {
+    final repository = ref.read(repositoryProvider);
+    return StreamBuilder<List<Todo>>(
         stream: repository.watchAllTodos(category.id),
         builder: (context, AsyncSnapshot<List<Todo>> snapshot) {
           if (!snapshot.hasData ||
-              snapshot.connectionState != ConnectionState.active)
+              snapshot.connectionState != ConnectionState.active) {
             return const CircularProgressIndicator();
+          }
           final todos = snapshot.data ?? [];
           return SizedBox(
             width: 280,
@@ -161,7 +157,7 @@ class CardColumn extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.add),
                           onPressed: () {
-                            addTodo(repository, controller, category.id);
+                            addTodo(context, repository, listController, category.id);
                           },
                         ),
                       ],
@@ -185,7 +181,7 @@ class CardColumn extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.delete),
                       onPressed: () {
-                        areYouSureDelete(
+                        areYouSureDelete(context,
                             'Are you sure you want to delete ${category.name}',
                             (deleted) {
                           if (deleted) {
@@ -201,7 +197,6 @@ class CardColumn extends StatelessWidget {
             ),
           );
         },
-      ),
     );
   }
 }

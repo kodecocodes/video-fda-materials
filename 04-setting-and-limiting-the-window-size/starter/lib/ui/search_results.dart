@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,21 +31,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:todo/db/repository.dart';
 import 'package:todo/models/models.dart';
 
-class SearchResults extends StatelessWidget {
+class SearchResults extends ConsumerWidget {
   final String searchText;
 
-  const SearchResults({required this.searchText});
+  const SearchResults({super.key, required this.searchText});
 
   @override
-  Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repository = ref.read(repositoryProvider);
     return FutureBuilder(
         future: repository.findTodos(searchText),
         builder: (context, AsyncSnapshot<List<Todo>> snapshot) {
@@ -81,7 +80,7 @@ class SearchResults extends StatelessWidget {
                               style: const TextStyle(
                                   fontSize: 14),
                             ),
-                            trailing: Text(todo.notes,
+                            trailing: Text(todo.notes ?? '',
                               style: const TextStyle(
                                   fontSize: 12),
                             ),
@@ -90,7 +89,7 @@ class SearchResults extends StatelessWidget {
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
-                      Get.back();
+                      Navigator.pop(context);
                     },
                     child: const Text('Back'),
                   ),

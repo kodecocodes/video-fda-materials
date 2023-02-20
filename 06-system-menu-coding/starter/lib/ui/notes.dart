@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,52 +32,50 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/list_controller.dart';
 import '../debouncer.dart';
 import '../db/repository.dart';
 
-class NotePane extends StatelessWidget {
+//ignore: must_be_immutable
+class NotePane extends ConsumerWidget {
   final String todoListName;
   final Debouncer _debouncer = Debouncer();
   TextEditingController notesController = TextEditingController();
+  late Repository repository;
+  late ListController listController;
 
-  NotePane({Key? key, required this.todoListName})
-      : super(key: key) {
-    final repository = Get.find<Repository>();
+  NotePane({Key? key, required this.todoListName}) : super(key: key) {
     notesController.addListener(() {
       _debouncer.run(() {
-        final controller = Get.find<ListController>(tag: todoListName);
-        controller.currentTodo.value.notes = notesController.text;
-        repository.updateTodo(controller.currentTodo.value);
+        listController.currentTodo =
+            listController.currentTodo.copyWith(notes: notesController.text);
+        repository.updateTodo(listController.currentTodo);
       });
     });
   }
 
 
   @override
-  Widget build(BuildContext context) {
-    return GetBuilder<ListController>(
-      tag: todoListName,
-      builder: (controller) {
-        notesController.text = controller.currentTodo.value.notes;
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Notes',
-              textAlign: TextAlign.center,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TextField(controller: notesController),
-              ),
-            ),
-          ],
-        );
-      },
+  Widget build(BuildContext context, WidgetRef ref) {
+    repository = ref.read(repositoryProvider);
+    listController = ref.read(listControllerProvider);
+    notesController.text = listController.currentTodo.notes ?? '';
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Notes',
+          textAlign: TextAlign.center,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(controller: notesController),
+          ),
+        ),
+      ],
     );
   }
 }

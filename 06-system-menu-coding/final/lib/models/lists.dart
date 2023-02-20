@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,33 +32,25 @@
  * THE SOFTWARE.
  */
 
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'category.dart';
 
+part 'lists.freezed.dart';
+
+part 'lists.g.dart';
+
 // ignore: must_be_immutable
-class TodoList extends Equatable {
-  int id = -1;
-  final String name;
-  List<Category> categories;
+@Freezed(makeCollectionsUnmodifiable: false)
+class TodoList with _$TodoList {
+  @JsonSerializable(explicitToJson: true)
+  const factory TodoList(
+      {required int id,
+      required String name,
+      @JsonKey(ignore: true)
+      @Default(<Category>[])
+          List<Category> categories}) = _TodoList;
 
-  TodoList({this.id = -1, required this.name, this.categories = const []});
-
-  @override
-  List<Object> get props => [id, name, categories];
-
-  // Create a TodoList from JSON data
-  factory TodoList.fromJson(Map<String, dynamic> json) => TodoList(
-      id: json['id'],
-      name: json['name'],
-      categories: (json['categories'])
-          .map<Category>((category) => Category.fromJson(category))
-          .toList());
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'categories':
-            List<dynamic>.from(categories.map((category) => category.toJson()))
-      };
+  factory TodoList.fromJson(Map<String, dynamic> json) =>
+      _$TodoListFromJson(json);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,11 +31,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/lists.dart';
 import '../controllers/list_controller.dart';
 
@@ -44,12 +42,17 @@ import 'notes.dart';
 import 'todo_widget.dart';
 import '../db/repository.dart';
 
-class TodoScreen extends StatelessWidget {
+//ignore: must_be_immutable
+class TodoScreen extends ConsumerWidget {
   final TodoList todoList;
-  late final ListController listController;
-  TodoScreen({Key? key, required this.todoList}) : super(key: key) {
-    listController = Get.put(ListController(todoList), tag: todoList.name);
-    final repository = Get.find<Repository>();
+  late ListController listController;
+  TodoScreen({Key? key, required this.todoList}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    listController = ref.read(listControllerProvider);
+    listController.setCurrentList(todoList);
+    final repository = ref.read(repositoryProvider);
     repository.firstCategory(todoList.id).then((category) {
       if (category != null) {
         listController.setCurrentCategory(category);
@@ -60,10 +63,6 @@ class TodoScreen extends StatelessWidget {
         });
       }
     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,

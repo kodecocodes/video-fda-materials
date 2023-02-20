@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:todo/controllers/list_controller.dart';
 import '../controllers/todo_controller.dart';
 
 import 'card_column.dart';
@@ -42,18 +42,20 @@ import '../models/lists.dart';
 import 'dialogs.dart';
 import 'search_results.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
+  const MainScreen({super.key});
+
   @override
-  _MainScreenState createState() => _MainScreenState();
+  ConsumerState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
   final _searchQueryController = TextEditingController();
   String searchQuery = 'Search query';
 
   @override
   Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
+    final repository = ref.read(repositoryProvider);
     return StreamBuilder<List<TodoList>>(
         stream: repository.watchAllTodoLists(),
         builder: (context, AsyncSnapshot<List<TodoList>> snapshot) {
@@ -62,7 +64,7 @@ class _MainScreenState extends State<MainScreen> {
               snapshot.connectionState == ConnectionState.active) {
             lists = snapshot.data ?? [];
           }
-          final todoController = Get.find<TodoController>();
+          final todoController = ref.read(todoControllerProvider);
           todoController.setLists(lists);
           return DefaultTabController(
             length: (lists.length + 1),
@@ -71,17 +73,18 @@ class _MainScreenState extends State<MainScreen> {
         });
   }
 
-  Widget createTabBar(BuildContext context, Repository repository,
-      List<TodoList> lists) {
+  Widget createTabBar(
+      BuildContext context, Repository repository, List<TodoList> lists) {
+    final listController = ref.read(listControllerProvider);
     final tabs = <Tab>[];
-    lists.forEach((element) {
+    for (final todoList in lists) {
       tabs.add(Tab(
         child: Text(
-          element.name,
+          todoList.name,
           style: const TextStyle(color: Colors.black),
         ),
       ));
-    });
+    }
     tabs.add(Tab(
       child: SizedBox(
         height: 40,
@@ -93,7 +96,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           onPressed: () {
             setState(() {
-              addList(repository);
+              addList(context, repository, listController);
             });
           },
         ),
@@ -109,8 +112,8 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget createBody(BuildContext context, Repository repository,
-      List<TodoList> lists) {
+  Widget createBody(
+      BuildContext context, Repository repository, List<TodoList> lists) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -133,9 +136,9 @@ class _MainScreenState extends State<MainScreen> {
 
   List<Widget> createTabViews(Repository repository, List<TodoList> lists) {
     final views = <Widget>[];
-    lists.forEach((list) {
+    for (final list in lists) {
       views.add(CardColumn(todoList: list));
-    });
+    }
     views.add(Container());
 
     return views;
@@ -181,12 +184,14 @@ class _MainScreenState extends State<MainScreen> {
 
   void _startSearch() {
     if (_searchQueryController.text.isNotEmpty) {
-      Get.to(() => SearchResults(searchText: _searchQueryController.text));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (BuildContext context) {
+        return SearchResults(searchText: _searchQueryController.text);
+      }));
     }
   }
 
   void updateSearchQuery(String newQuery) {
     searchQuery = newQuery;
   }
-
 }

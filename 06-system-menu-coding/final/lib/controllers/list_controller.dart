@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,48 +31,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/todo.dart';
 import '../models/category.dart';
 import '../models/lists.dart';
 
-class ListController extends GetxController {
-  var currentList = TodoList(name: 'empty').obs;
-  var currentCategory = Category(todoList: -1, name: 'empty').obs;
-  var currentTodo = Todo(name: 'empty', category: -1).obs;
+final listControllerProvider = ChangeNotifierProvider<ListController>((ref) {
+  return ListController();
+});
 
-  static ListController get to => Get.find();
+class ListController extends ChangeNotifier {
+  var currentList = const TodoList(name: 'empty', id: -1);
+  var currentCategory = const Category(todoList: -1, name: 'empty', id: -1);
+  var currentTodo = const Todo(
+      name: 'empty', category: -1, finished: false, notes: '', id: -1);
 
-  void updateList(TodoList updatedList) {
-    currentList.value = updatedList;
-    update();
+  void setCurrentList(TodoList updatedList) {
+    currentList = updatedList;
   }
 
   void setCurrentCategory(Category category) {
-    currentCategory.value = category;
-    update();
+    currentCategory = category;
+    notifyListeners();
   }
 
   void removeCurrentCategory(Category category) {
-    currentCategory.value = currentList.value.categories.isNotEmpty
-        ? currentList.value.categories.first
-        : Category(todoList: -1, name: 'empty');
-    update();
+    currentCategory = currentList.categories.isNotEmpty
+        ? currentList.categories.first
+        : const Category(todoList: -1, name: 'empty', id: -1);
+    notifyListeners();
   }
 
   void setCurrentTodo(Todo todo) {
-    currentTodo.value = todo;
-    update();
+    currentTodo = todo;
+    notifyListeners();
   }
 
   void removeCurrentTodo(Todo todo) {
-    currentTodo.value = currentCategory.value.todos.isNotEmpty
-        ? currentCategory.value.todos.first
-        : Todo(name: 'empty', category: -1);
-    update();
+    currentTodo = currentCategory.todos.isNotEmpty
+        ? currentCategory.todos.first
+        : const Todo(
+            id: -1, name: 'empty', category: -1, finished: false, notes: '');
+    notifyListeners();
   }
 
-  ListController(TodoList todoList) {
-    updateList(todoList);
-  }
+// ListController(TodoList todoList) {
+//   updateList(todoList);
+// }
 }

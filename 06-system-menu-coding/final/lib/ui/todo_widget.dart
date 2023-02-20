@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,67 +31,67 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/list_controller.dart';
 import '../models/models.dart';
 import '../db/repository.dart';
 
 import 'todo_item.dart';
 
-class TodoWidget extends StatelessWidget {
+//ignore: must_be_immutable
+class TodoWidget extends ConsumerWidget {
   final String todoListName;
+  late ListController listController;
 
-  const TodoWidget({Key? key, required this.todoListName}) : super(key: key);
+  TodoWidget({Key? key, required this.todoListName}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
-    return GetBuilder<ListController>(
-      tag: todoListName,
-      builder: (controller) => StreamBuilder<List<Todo>>(
-        stream: repository.watchAllTodos(controller.currentCategory.value.id),
-        builder: (context, AsyncSnapshot<List<Todo>> snapshot) {
-          if (!snapshot.hasData ||
-              snapshot.connectionState != ConnectionState.active)
-            return const CircularProgressIndicator();
-          final todos = snapshot.data ?? [];
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Todos', textAlign: TextAlign.center),
-              Expanded(
-                flex: 1,
-                child: ListView.builder(
-                  itemCount: todos.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final todo = todos[index];
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: TodoItem(
-                        todo: todo,
-                        todoListName: todoListName,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const Spacer(
-                flex: 1,
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () {
-                  addTodo(context, repository, controller.currentCategory.value,
-                      controller);
+  Widget build(BuildContext context, WidgetRef ref) {
+    listController = ref.read(listControllerProvider);
+    final repository = ref.read(repositoryProvider);
+    return StreamBuilder<List<Todo>>(
+      stream: repository.watchAllTodos(listController.currentCategory.id),
+      builder: (context, AsyncSnapshot<List<Todo>> snapshot) {
+        if (!snapshot.hasData ||
+            snapshot.connectionState != ConnectionState.active) {
+          return const CircularProgressIndicator();
+        }
+        final todos = snapshot.data ?? [];
+        return Column(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Todos', textAlign: TextAlign.center),
+            Expanded(
+              flex: 1,
+              child: ListView.builder(
+                itemCount: todos.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final todo = todos[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TodoItem(
+                      todo: todo,
+                      todoListName: todoListName,
+                    ),
+                  );
                 },
               ),
-            ],
-          );
-        },
-      ),
+            ),
+            const Spacer(
+              flex: 1,
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                addTodo(context, repository, listController.currentCategory,
+                    listController);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -119,12 +119,16 @@ class TodoWidget extends StatelessWidget {
                     child: const Text('Cancel')),
                 TextButton(
                     onPressed: () async {
-                      final todo = Todo(
-                          name: controller.text.trim(), category: category.id);
+                      var todo = Todo(
+                          id: -1,
+                          name: controller.text.trim(),
+                          category: category.id);
                       final id = await repository.addTodo(todo);
-                      todo.id = id;
+                      todo = todo.copyWith(id: id);
                       listController.setCurrentTodo(todo);
-                      Navigator.of(context).pop();
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: const Text('Add')),
               ]);

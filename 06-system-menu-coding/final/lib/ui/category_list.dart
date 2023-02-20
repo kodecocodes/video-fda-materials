@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,65 +32,64 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/list_controller.dart';
 import '../db/repository.dart';
 import '../models/lists.dart';
 import '../models/category.dart';
 import 'dialogs.dart';
 
-class CategoryList extends StatelessWidget {
+class CategoryList extends ConsumerWidget {
   final TodoList todoList;
 
   const CategoryList({Key? key, required this.todoList}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final repository = Get.find<Repository>();
-    return GetBuilder<ListController>(
-      tag: todoList.name,
-      builder: (controller) => StreamBuilder<List<Category>>(
-        stream: repository.watchAllCategories(todoList.id),
-        builder: (context, AsyncSnapshot<List<Category>> snapshot) {
-          if (!snapshot.hasData ||
-              snapshot.connectionState != ConnectionState.active)
-            return const CircularProgressIndicator();
-          final categories = snapshot.data ?? [];
-          return Column(
-              mainAxisSize: MainAxisSize.max,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Categories', textAlign: TextAlign.center),
-                const SizedBox(
-                  height: 4.0,
-                ),
-                Expanded(
-                  flex: 1,
-                  child: ListView.builder(
-                    itemCount: categories.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final category = categories[index];
-                      return ListTile(
-                        onTap: () {
-                          controller.setCurrentCategory(category);
-                        },
-                        title: Text(category.name),
-                      );
-                    },
-                  ),
-                ),
-                const Spacer(
-                  flex: 1,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    addCategory(repository, controller, todoList.id);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listController = ref.read(listControllerProvider);
+    final repository = ref.read(repositoryProvider);
+    return StreamBuilder<List<Category>>(
+      stream: repository.watchAllCategories(todoList.id),
+      builder: (context, AsyncSnapshot<List<Category>> snapshot) {
+        if (!snapshot.hasData ||
+            snapshot.connectionState != ConnectionState.active) {
+          return const CircularProgressIndicator();
+        }
+        final categories = snapshot.data ?? [];
+        return Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Categories', textAlign: TextAlign.center),
+              const SizedBox(
+                height: 4.0,
+              ),
+              Expanded(
+                flex: 1,
+                child: ListView.builder(
+                  itemCount: categories.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final category = categories[index];
+                    return ListTile(
+                      onTap: () {
+                        listController.setCurrentCategory(category);
+                      },
+                      title: Text(category.name),
+                    );
                   },
                 ),
-              ]);
-        },
-      ),
+              ),
+              const Spacer(
+                flex: 1,
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () {
+                  addCategory(context, repository, listController, todoList.id);
+                },
+              ),
+            ]);
+      },
     );
   }
 }

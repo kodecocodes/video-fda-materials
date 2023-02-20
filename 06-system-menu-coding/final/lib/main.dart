@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,68 +31,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:desktop_window/desktop_window.dart';
-import 'package:get/get.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3/open.dart';
-import 'package:sqlite3_library_windows/sqlite3_library_windows.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// import 'package:window_size/window_size.dart';
-import 'controllers/todo_controller.dart';
 import 'ui/menus.dart';
-import 'db/repository.dart';
 import 'ui/main_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isWindows) {
-    open.overrideFor(OperatingSystem.windows,openWindowsDll);
-
-    final db = sqlite3.openInMemory();
-    db.dispose();
-
-    // Init ffi loader if needed.
-    sqfliteFfiInit();
-    // Change the default factory
-    databaseFactory = databaseFactoryFfi;
-  }
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await DesktopWindow.setWindowSize(Size(700,500));
+    await DesktopWindow.setWindowSize(const Size(700,500));
 
-    await DesktopWindow.setMinWindowSize(Size(700,500));
+    await DesktopWindow.setMinWindowSize(const Size(700,500));
     await DesktopWindow.setMaxWindowSize(Size.infinite);
-    // setWindowTitle('Todos');
-    // setWindowMinSize(const Size(700, 500));
-    // setWindowMaxSize(Size.infinite);
   }
-  final repository = Repository();
-  repository.init();
-  Get.put(repository);
-  Get.put(TodoController());
-  createMenus();
-  runApp(MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-DynamicLibrary openWindowsDll() {
-  return openSQLiteOnWindows()!;
+class MyApp extends ConsumerStatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class MyApp extends StatelessWidget {
+class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Todos',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    final menus = ref.read(menuProvider);
+    return PlatformMenuBar(
+      menus: menus.createMenus(),
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        title: 'Todos',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: const MainScreen(),
       ),
-      home: MainScreen(),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isWindows) {
+      ref.read(menuProvider).createWindowsMenus();
+    }
+  }
 }
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,49 +34,64 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:filesystem_picker/filesystem_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:todo/controllers/list_controller.dart';
 import '../controllers/todo_controller.dart';
+import '../main.dart';
 import '../models/lists.dart';
 import '../db/repository.dart';
 
 import 'dialogs.dart';
 
-void createMenus() {
+final menuProvider = Provider<MenuProvider>((ref) {
+  return MenuProvider(ref);
+});
+
+class MenuProvider {
+  final ProviderRef ref;
+
+  MenuProvider(this.ref);
+
+  List<PlatformMenu> createMenus() {
+    return [];
+  }
+
+  void createWindowsMenus() {}
+
+  void handleImport() async {}
+
+  void handleExport() async {}
+
+  void handlePaste() {}
+
+  void handleCopy() {}
+
+  void handleCut() {}
+
+  void deleteTodo() {}
+
+  void deleteCategory() {}
+
+  void deleteList() {}
+
+  void newCategory() {}
+
+  void newTodo() {}
+
+  void newList() {}
+
+  void handlePrevious() {}
+
+  void handleNext() {}
+
+  void handleSearch() {}
+
+  void handleHelp() {}
+
+  void handleQuit() {
+    SystemNavigator.pop();
+  }
 }
-
-
-void handleImport() async {
-}
-
-void handleExport() async {
-}
-
-void handlePaste() {}
-
-void handleCopy() {}
-
-void handleCut() {}
-
-void deleteTodo() {}
-
-void deleteCategory() {}
-
-void deleteList() {}
-
-void newCategory() {}
-
-void newTodo() {}
-
-void newList() {
-  addList(Get.find<Repository>());
-}
-
-void handlePrevious() {}
-
-void handleNext() {}
-
-void handleSearch() {}
-
-void handleHelp() {}
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Razeware LLC
+ * Copyright (c) 2023 Kodeco LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,14 +32,13 @@
  * THE SOFTWARE.
  */
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../controllers/list_controller.dart';
 import '../db/repository.dart';
 import '../models/models.dart';
 
-void addList(Repository repository) {
+void addList(BuildContext context, Repository repository, ListController listController) {
   final controller = TextEditingController();
-  Get.dialog(AlertDialog(
+  showDialog(context: context, builder: (context) => AlertDialog(
       title: const Text('Add List'),
       content: TextField(
         autofocus: true,
@@ -51,23 +50,27 @@ void addList(Repository repository) {
       actions: <Widget>[
         TextButton(
             onPressed: () {
-              Get.back();
+              Navigator.pop(context);
             },
             child: const Text('Cancel')),
         TextButton(
             onPressed: () async {
-              final todoList = TodoList(name: controller.text.trim());
-              repository.addTodoList(todoList);
-              Get.back();
+              var todoList = TodoList(name: controller.text.trim(), id: -1);
+              final id = await repository.addTodoList(todoList);
+              todoList = todoList.copyWith(id: id);
+              listController.setCurrentList(todoList);
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Add')),
       ]));
 }
 
-void addCategory(
+void addCategory(BuildContext context,
     Repository repository, ListController listController, int todoId) {
   final textController = TextEditingController();
-  Get.dialog(AlertDialog(
+  showDialog(context: context, builder: (context) => AlertDialog(
       title: const Text('Add Category'),
       content: TextField(
         autofocus: true,
@@ -79,26 +82,28 @@ void addCategory(
       actions: <Widget>[
         TextButton(
             onPressed: () {
-              Get.back();
+              Navigator.pop(context);
             },
             child: const Text('Cancel')),
         TextButton(
             onPressed: () async {
-              final category =
-                  Category(name: textController.text.trim(), todoList: todoId);
+              var category =
+                  Category(name: textController.text.trim(), todoList: todoId, id: -1);
               final id = await repository.addCategory(category);
-              category.id = id;
+              category = category.copyWith(id: id);
               listController.setCurrentCategory(category);
-              Get.back();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Add')),
       ]));
 }
 
-void addTodo(
+void addTodo(BuildContext context,
     Repository repository, ListController listController, int categoryId) {
   final textController = TextEditingController();
-  Get.dialog(AlertDialog(
+  showDialog(context: context, builder: (context) => AlertDialog(
       title: const Text('Add Todo'),
       content: TextField(
         autofocus: true,
@@ -110,17 +115,19 @@ void addTodo(
       actions: <Widget>[
         TextButton(
             onPressed: () {
-              Get.back();
+              Navigator.pop(context);
             },
             child: const Text('Cancel')),
         TextButton(
             onPressed: () async {
-              final todo =
-                  Todo(name: textController.text.trim(), category: categoryId);
+              var todo =
+                  Todo(name: textController.text.trim(), category: categoryId, id: -1);
               final id = await repository.addTodo(todo);
-              todo.id = id;
+              todo = todo.copyWith(id: id);
               listController.setCurrentTodo(todo);
-              Get.back();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Add')),
       ]));
@@ -128,16 +135,16 @@ void addTodo(
 
 typedef DeleteCallback = void Function(bool delete);
 
-void areYouSureDelete(String title, DeleteCallback callback) {
-  Get.dialog(AlertDialog(title: Text(title), actions: <Widget>[
+void areYouSureDelete(BuildContext context, String title, DeleteCallback callback) {
+  showDialog(context: context, builder: (context) => AlertDialog(title: Text(title), actions: <Widget>[
     TextButton(
         onPressed: () {
-          Get.back();
+          Navigator.pop(context);
         },
         child: const Text('Cancel')),
     TextButton(
         onPressed: () {
-          Get.back();
+          Navigator.pop(context);
           callback(true);
         },
         child: const Text('Delete')),
