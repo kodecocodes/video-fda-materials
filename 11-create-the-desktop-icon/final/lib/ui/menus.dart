@@ -111,9 +111,7 @@ class MenuProvider {
     if (path != null) {
       final file = File(path);
       if (await file.exists()) {
-        final repository = ProviderScope.containerOf(
-            navigatorKey.currentContext!)
-            .read(repositoryProvider);
+        final repository = ref.read(repositoryProvider);
         file.readAsString().then((String contents) async {
           final jsonArray = jsonDecode(contents) as List<dynamic>;
           await Future.forEach(jsonArray, (value) async {
@@ -150,11 +148,8 @@ class MenuProvider {
       if (await file.exists()) {
         await file.delete();
       }
-      final repository = ProviderScope.containerOf(navigatorKey.currentContext!)
-          .read(repositoryProvider);
-      final todoController =
-      ProviderScope.containerOf(navigatorKey.currentContext!)
-          .read(todoControllerProvider);
+      final repository = ref.read(repositoryProvider);
+      final todoController = ref.read(todoControllerProvider);
       final todoLists = todoController.todoList;
       for (final list in todoLists) {
         await repository.fillTodoList(list);
