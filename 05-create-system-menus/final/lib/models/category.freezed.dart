@@ -23,7 +23,6 @@ mixin _$Category {
   int get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   int get todoList => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
   List<Todo> get todos => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -37,11 +36,7 @@ abstract class $CategoryCopyWith<$Res> {
   factory $CategoryCopyWith(Category value, $Res Function(Category) then) =
       _$CategoryCopyWithImpl<$Res, Category>;
   @useResult
-  $Res call(
-      {int id,
-      String name,
-      int todoList,
-      @JsonKey(ignore: true) List<Todo> todos});
+  $Res call({int id, String name, int todoList, List<Todo> todos});
 }
 
 /// @nodoc
@@ -90,11 +85,7 @@ abstract class _$$_CategoryCopyWith<$Res> implements $CategoryCopyWith<$Res> {
       __$$_CategoryCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int id,
-      String name,
-      int todoList,
-      @JsonKey(ignore: true) List<Todo> todos});
+  $Res call({int id, String name, int todoList, List<Todo> todos});
 }
 
 /// @nodoc
@@ -142,7 +133,7 @@ class _$_Category implements _Category {
       {required this.id,
       required this.name,
       required this.todoList,
-      @JsonKey(ignore: true) this.todos = const <Todo>[]});
+      this.todos = const <Todo>[]});
 
   factory _$_Category.fromJson(Map<String, dynamic> json) =>
       _$$_CategoryFromJson(json);
@@ -154,7 +145,7 @@ class _$_Category implements _Category {
   @override
   final int todoList;
   @override
-  @JsonKey(ignore: true)
+  @JsonKey()
   final List<Todo> todos;
 
   @override
@@ -198,7 +189,7 @@ abstract class _Category implements Category {
       {required final int id,
       required final String name,
       required final int todoList,
-      @JsonKey(ignore: true) final List<Todo> todos}) = _$_Category;
+      final List<Todo> todos}) = _$_Category;
 
   factory _Category.fromJson(Map<String, dynamic> json) = _$_Category.fromJson;
 
@@ -209,7 +200,6 @@ abstract class _Category implements Category {
   @override
   int get todoList;
   @override
-  @JsonKey(ignore: true)
   List<Todo> get todos;
   @override
   @JsonKey(ignore: true)

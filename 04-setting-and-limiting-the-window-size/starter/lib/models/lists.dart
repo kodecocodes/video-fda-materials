@@ -47,7 +47,6 @@ class TodoList with _$TodoList {
   const factory TodoList(
       {required int id,
       required String name,
-      @JsonKey(ignore: true)
       @Default(<Category>[])
           List<Category> categories}) = _TodoList;
 

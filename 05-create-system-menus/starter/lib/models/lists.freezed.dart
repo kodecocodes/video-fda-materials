@@ -22,7 +22,6 @@ TodoList _$TodoListFromJson(Map<String, dynamic> json) {
 mixin _$TodoList {
   int get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
   List<Category> get categories => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -36,8 +35,7 @@ abstract class $TodoListCopyWith<$Res> {
   factory $TodoListCopyWith(TodoList value, $Res Function(TodoList) then) =
       _$TodoListCopyWithImpl<$Res, TodoList>;
   @useResult
-  $Res call(
-      {int id, String name, @JsonKey(ignore: true) List<Category> categories});
+  $Res call({int id, String name, List<Category> categories});
 }
 
 /// @nodoc
@@ -81,8 +79,7 @@ abstract class _$$_TodoListCopyWith<$Res> implements $TodoListCopyWith<$Res> {
       __$$_TodoListCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int id, String name, @JsonKey(ignore: true) List<Category> categories});
+  $Res call({int id, String name, List<Category> categories});
 }
 
 /// @nodoc
@@ -124,7 +121,7 @@ class _$_TodoList implements _TodoList {
   const _$_TodoList(
       {required this.id,
       required this.name,
-      @JsonKey(ignore: true) this.categories = const <Category>[]});
+      this.categories = const <Category>[]});
 
   factory _$_TodoList.fromJson(Map<String, dynamic> json) =>
       _$$_TodoListFromJson(json);
@@ -134,7 +131,7 @@ class _$_TodoList implements _TodoList {
   @override
   final String name;
   @override
-  @JsonKey(ignore: true)
+  @JsonKey()
   final List<Category> categories;
 
   @override
@@ -176,7 +173,7 @@ abstract class _TodoList implements TodoList {
   const factory _TodoList(
       {required final int id,
       required final String name,
-      @JsonKey(ignore: true) final List<Category> categories}) = _$_TodoList;
+      final List<Category> categories}) = _$_TodoList;
 
   factory _TodoList.fromJson(Map<String, dynamic> json) = _$_TodoList.fromJson;
 
@@ -185,7 +182,6 @@ abstract class _TodoList implements TodoList {
   @override
   String get name;
   @override
-  @JsonKey(ignore: true)
   List<Category> get categories;
   @override
   @JsonKey(ignore: true)

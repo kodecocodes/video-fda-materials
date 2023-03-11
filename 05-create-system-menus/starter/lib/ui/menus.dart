@@ -34,7 +34,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:filesystem_picker/filesystem_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +80,14 @@ class MenuProvider {
 
   void newTodo() {}
 
-  void newList() {}
+  void newList() {
+    addList(
+        navigatorKey.currentContext!,
+        ProviderScope.containerOf(navigatorKey.currentContext!)
+            .read(repositoryProvider),
+        ProviderScope.containerOf(navigatorKey.currentContext!)
+            .read(listControllerProvider));
+  }
 
   void handlePrevious() {}
 

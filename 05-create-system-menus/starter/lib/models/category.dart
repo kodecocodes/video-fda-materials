@@ -48,7 +48,7 @@ class Category with _$Category {
     required int id,
     required String name,
     required int todoList,
-    @JsonKey(ignore: true) @Default(<Todo>[]) List<Todo> todos,
+    @Default(<Todo>[]) List<Todo> todos,
   }) = _Category;
 
   factory Category.fromJson(Map<String, dynamic> json) =>

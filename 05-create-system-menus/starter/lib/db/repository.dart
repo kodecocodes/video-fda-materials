@@ -84,12 +84,14 @@ class Repository {
 
   Future<TodoList> fillTodoList(TodoList todoList) async {
     final categories = await getListCategories(todoList.id);
-    todoList = todoList.copyWith(categories: categories);
+    final updatedCategories = <Category>[];
     await Future.forEach(categories, (Category category) async {
       final todos = await getCategoryTodos(category.id);
       category = category.copyWith(todos: todos);
+      updatedCategories.add(category);
     });
-    return Future.value(todoList);
+    todoList = todoList.copyWith(categories: updatedCategories);
+    return todoList;
   }
 
   Stream<List<TodoList>> watchAllTodoLists() {
